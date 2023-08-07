@@ -34,7 +34,7 @@ const createThread = async ({ text, author, communityId, path }: Params) => {
       await ConnectToDB();
 
       const SkipThreads = (pgNum - 1) * pgSize,
-        ThreadsQuery =  Threads.find({
+        ThreadsQuery = Threads.find({
           parentId: { $in: [null, undefined] },
         })
           .sort({ createdAt: "desc" })
@@ -56,11 +56,49 @@ const createThread = async ({ text, author, communityId, path }: Params) => {
         isNext: boolean = TotalThreads > SkipThreads + _threads.length;
 
       return { isNext, _threads };
-    } 
-    catch (error: any) {
+    } catch (error: any) {
       const _err = `Failed to find threads ¯\_(ツ)_/¯ : ${error.message}`;
       console.error(_err);
       throw new Error(_err);
     }
+  },
+  fetchThreadById = async (_threadId: string) => {
+    try {
+      await ConnectToDB();
+
+      const _threadDetails = await Threads.findById(_threadId)
+        .populate({
+          path: "author",
+          model: User,
+          select: "_id id name image",
+        })
+        .populate({
+          path: "children",
+          populate: [
+            {
+              path: "author",
+              model: User,
+              select: "_id id name parentId image",
+            },
+            {
+              path: "children",
+              model: Threads,
+              populate: {
+                path: "author",
+                model: User,
+                select: "_id id name parentId image",
+              },
+            },
+          ],
+        })
+        .exec();
+
+      return _threadDetails;
+    } catch (error: any) {
+      const _err = `Failed to find thread ¯\_(ツ)_/¯ make sure You's connected! : ${error.message}`;
+      console.error(_err);
+      throw new Error(_err);
+    }
   };
-export { createThread, fetchThreads };
+
+export { createThread, fetchThreads, fetchThreadById };

@@ -3,17 +3,18 @@ import { fetchUser } from "@/src/lib/actions/user.actions";
 import { currentUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 
-const CreateThread = async () => {
+const CreateThread = async (): Promise<JSX.Element> => {
   const _user = await currentUser(),
     _userInfo = await fetchUser(_user?.id);
 
-  if (!_user) redirect("/sign-in");
-  if (!_userInfo.onboarded) redirect("/onboarding");
+  // fetch organization list created by user
+  if (!_userInfo?.onboarded) redirect("/onboarding");
 
   return (
     <section>
       <h1 className="head-text">Create Thread</h1>
-      <PostThread userId={_userInfo._id}/>
+
+      <PostThread userId={_userInfo._id} />
     </section>
   );
 };

@@ -29,6 +29,7 @@ const createThread = async ({ text, author, communityId, path }: Params) => {
       throw new Error(_err);
     }
   },
+  
   fetchThreads = async (pgNum = 1, pgSize = 20) => {
     try {
       await ConnectToDB();
@@ -62,6 +63,7 @@ const createThread = async ({ text, author, communityId, path }: Params) => {
       throw new Error(_err);
     }
   },
+
   fetchThreadById = async (_threadId: string) => {
     try {
       await ConnectToDB();
@@ -99,6 +101,33 @@ const createThread = async ({ text, author, communityId, path }: Params) => {
       console.error(_err);
       throw new Error(_err);
     }
+  },
+
+  AddCommentToThread = async (
+    threadId: string,
+    commentText: string,
+    userId: string,
+    path: string,
+  ) => {
+    try {
+      await ConnectToDB();
+      const ParentThread = await Threads.findById(threadId),
+        commentThread = await new Threads({
+          text: commentText,
+          author: userId,
+          parentId: threadId,
+        }),
+        SaveCommentThread = await commentThread.save();
+
+      !ParentThread && new Error("thread not found");
+      await ParentThread.children.push(SaveCommentThread._id);
+      await ParentThread.save();
+      revalidatePath(path);
+    } catch (error: any) {
+      const _err = `Failed to post comment that thread ¯\_(ツ)_/¯ make sure You's connected! : ${error.message}`;
+      console.error(_err);
+      throw new Error(_err);
+    }
   };
 
-export { createThread, fetchThreads, fetchThreadById };
+export { createThread, fetchThreads, fetchThreadById, AddCommentToThread };

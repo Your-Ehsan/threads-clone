@@ -1,17 +1,20 @@
 import AccountProfile from "@/src/components/forms/AccountProfile";
+import { fetchUser } from "@/src/lib/actions/user.actions";
 import { currentUser } from "@clerk/nextjs";
 
 const Onboarding = async () => {
   const _user = await currentUser(),
-    _userInfo = {},
+    _userInfo = await fetchUser(_user?.id),
     _userData = {
       id: _user?.id,
       objectId: _userInfo?._id,
-      username: _user?.username || _userInfo?.username,
-      name: _user?.firstName || _userInfo?.firstname || "",
-      bio: _userInfo?.bio || "",
-      image: _user?.imageUrl || _userInfo?.image,
+      username: _userInfo ? _userInfo?.username : _user?.username,
+      name: _userInfo ? _userInfo?.name : _user?.firstName ?? "",
+      bio: _userInfo ? _userInfo?.bio : "",
+      image: _userInfo ? _userInfo?.image : _user?.imageUrl,
     };
+
+  if (!_user) return null;
 
   return (
     <main className="flex flex-col max-w-3xl justify-center mx-auto mt-10">

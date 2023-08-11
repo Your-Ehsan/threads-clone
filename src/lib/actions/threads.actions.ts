@@ -3,6 +3,7 @@ import { ConnectToDB } from "@/src/lib/mongoose";
 import Threads from "@/src/lib/models/threads.model";
 import User from "@/src/lib/models/user.model";
 import { revalidatePath } from "next/cache";
+import Community from "../models/community.model";
 
 interface Params {
   text: string;
@@ -16,12 +17,30 @@ const createThread = async ({ text, author, communityId, path }: Params) => {
       const _CreateThread = await Threads.create({
         text,
         author,
-        // communityId,
-        community: null,
-      });
+        communityId,
+        // community: null,
+      }),
+      
+      communityIdObject = await Community.findOne(
+        { id: communityId },
+        { _id: 1 }
+      );
+  
+
       await User.findByIdAndUpdate(author, {
         $push: { threads: _CreateThread._id },
-      }).then(() => revalidatePath(path));
+      })
+      // .then(() => revalidatePath(path));
+
+      if (communityIdObject) {
+        // Update Community model
+        await Community.findByIdAndUpdate(communityIdObject, {
+          $push: { threads: _CreateThread._id },
+        });
+      }
+
+      revalidatePath(path)
+
     } catch (error: any) {
       const _err = `Failed to create thread ╯︿╰ : ${error.message}`;
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import User from "@/src/lib/models/user.model";
 import Threads from "../models/threads.model";
 import { FilterQuery, SortOrder } from "mongoose";
+import Community from "../models/community.model";
 
 interface Params {
   userId: string;
@@ -44,8 +45,10 @@ const UpdateUser = async ({
   fetchUser = async (userId: string | undefined) => {
     try {
       await ConnectToDB();
-      const _userInfo = await User.findOne({ id: userId });
-      // .populate({path: 'communities', model: Community});
+      const _userInfo = await User.findOne({ id: userId }).populate({
+        path: "communities",
+        model: Community,
+      });
       return _userInfo;
     } catch (error: any) {
       const _err = `Failed to fetch  user ╯︿╰ : ${error.message}`;
@@ -62,11 +65,11 @@ const UpdateUser = async ({
         path: "threads",
         model: Threads,
         populate: [
-          // {
-          //   path: "community",
-          //   model: Community,
-          //   select: "name id image _id", // Select the "name" and "_id" fields from the "Community" model
-          // },
+          {
+            path: "community",
+            model: Community,
+            select: "name id image _id", // Select the "name" and "_id" fields from the "Community" model
+          },
           {
             path: "children",
             model: Threads,
@@ -93,8 +96,8 @@ const UpdateUser = async ({
     pageSize = 20,
     sortBy = "desc",
   }: {
-    userId: string;
-    searchString: string;
+    userId: string | any;
+    searchString: string | any;
     pageNumber: number;
     pageSize: number;
     sortBy: SortOrder;
@@ -132,7 +135,6 @@ const UpdateUser = async ({
       throw new Error(_err);
     }
   },
-
   getActivity = async (userId: string) => {
     try {
       await ConnectToDB();

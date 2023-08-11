@@ -21,7 +21,11 @@ export default async function Authlayout({
   return (
     <ClerkProvider appearance={{ baseTheme: dark }}>
       <html lang="en">
-        <body className={`${inter.className} bg-dark-1`}>{children}</body>
+        <body className={`${inter.className} bg-dark-1`}>
+          <main className="flex justify-center items-center h-screen">
+          {children}
+          </main>
+          </body>
       </html>
     </ClerkProvider>
   );

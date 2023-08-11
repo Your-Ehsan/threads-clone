@@ -1,9 +1,10 @@
 "use server";
 
 import { ConnectToDB } from "@/src/lib/mongoose";
-import User from "@/src/lib/models/user.model";
 import { revalidatePath } from "next/cache";
+import User from "@/src/lib/models/user.model";
 import Threads from "../models/threads.model";
+import { FilterQuery, SortOrder } from "mongoose";
 
 interface Params {
   userId: string;
@@ -84,6 +85,76 @@ const UpdateUser = async ({
       console.error(_err);
       throw new Error(_err);
     }
+  },
+  fetchUsers = async ({
+    userId,
+    searchString = "",
+    pageNumber = 1,
+    pageSize = 20,
+    sortBy = "desc",
+  }: {
+    userId: string;
+    searchString: string;
+    pageNumber: number;
+    pageSize: number;
+    sortBy: SortOrder;
+  }) => {
+    try {
+      await ConnectToDB();
+
+      const skipAmount = (pageNumber - 1) * pageSize,
+        regex = new RegExp(searchString, "i"),
+        query: FilterQuery<typeof User> = {
+          id: { $ne: userId },
+        },
+        sortOPtions = { createdAt: sortBy },
+        usersQuery = User.find(query)
+          .sort(sortOPtions)
+          .limit(pageSize)
+          .skip(skipAmount),
+        totalUsers = await User.countDocuments(query),
+        users = await usersQuery.exec(),
+        isNext = totalUsers > skipAmount + users.length;
+
+      if (searchString.trim() !== "") {
+        query.$or = [
+          { username: { $regex: regex } },
+          { name: { $regex: regex } },
+        ];
+      }
+
+      return { isNext, users };
+    } catch (error: any) {
+      const _err = `Failed to fetch user that your are trying to find  ¯\_(ツ)_/¯ : ${error.message}`;
+
+      console.error(_err);
+
+      throw new Error(_err);
+    }
+  },
+
+  getActivity = async (userId: string) => {
+    try {
+      await ConnectToDB();
+      const UserThreads = await Threads.find({ author: userId }),
+        ChildThreadIds = UserThreads.reduce((accumulator, userThread) => {
+          return accumulator.concat(userThread.children);
+        }, []),
+        replies = await Threads.find({
+          _id: { $in: ChildThreadIds },
+          author: { $ne: userId },
+        }).populate({
+          path: "author",
+          model: User,
+          select: "name image _id",
+        });
+
+      return replies;
+    } catch (error: any) {
+      const _err = `Failed to get Activity ＞︿＜ : ${error.message}`;
+      console.error(_err);
+      throw new Error(_err);
+    }
   };
 
-export { UpdateUser, fetchUser , fetchUserPosts};
+export { UpdateUser, fetchUser, fetchUserPosts, fetchUsers, getActivity };
